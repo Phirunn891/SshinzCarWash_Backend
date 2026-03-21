@@ -31,4 +31,22 @@ const error = (res, msg, status = 400) => {
 
 const notFound = (res, msg = "Record not found") => error(res, msg, 404);
 
-module.exports = { success, created, paginated, message, error, notFound };
+const responseMiddleware = (req, res, next) => {
+  res.success = (data, status = 200) => success(res, data, status);
+  res.created = (data) => created(res, data);
+  res.paginated = (rows, pagination) => paginated(res, rows, pagination);
+  res.message = (msg, status = 200) => message(res, msg, status);
+  res.error = (msg, status = 400) => error(res, msg, status);
+  res.notFound = (msg = "Record not found") => notFound(res, msg);
+  next();
+};
+
+module.exports = {
+  success,
+  created,
+  paginated,
+  message,
+  error,
+  notFound,
+  responseMiddleware,
+};

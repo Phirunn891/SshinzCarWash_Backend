@@ -12,8 +12,8 @@ const c = require("../Controller/staff.controller");
 
 // router.use(auth);
 
-router.get("/", requireRole("manager"), c.getAll);
-router.post("/", c.create);
+router.get("/", c.getAll);
+router.post("/", createStaffRules, c.create);
 router.get("/:id", uuidParamRules, validate, requireRole("manager"), c.getOne);
 router.put(
   "/:id",

@@ -3,6 +3,7 @@ const Transaction = require("../Models/transaction.model");
 const Customer = require("../Models/customer.model");
 const bcrypt = require("bcryptjs");
 const { Op } = require("sequelize");
+
 const getAll = async (req, res, next) => {
   try {
     const rows = await Staff.findAll({
@@ -11,7 +12,7 @@ const getAll = async (req, res, next) => {
       },
       order: [["name", "ASC"]],
     });
-    res.json({ success: true, data: rows });
+    return res.success(rows);
   } catch (err) {
     next(err);
   }
@@ -24,12 +25,9 @@ const getOne = async (req, res, next) => {
         exclude: ["pin"],
       },
     });
-    if (!staff)
-      return res
-        .status(404)
-        .json({ success: false, message: "Staff not found" });
+    if (!staff) return res.notFound("Staff not found");
 
-    res.json({ success: true, data: staff });
+    return res.success(staff);
   } catch (err) {
     next(err);
   }
@@ -38,14 +36,16 @@ const getOne = async (req, res, next) => {
 const create = async (req, res, next) => {
   try {
     const { name, role, pin } = req.body;
+    const checkDuplicate = await Staff.findOne({ where: { name } });
+    if (checkDuplicate) {
+      return res.error("Duplicate Name");
+    }
+
     const hashed = await bcrypt.hash(String(pin), 10);
     const staff = await Staff.create({ name, role, pin: hashed });
-    res.status(201).json({
-      success: true,
-      data: {
-        message: "Staff created",
-        id: staff.id,
-      },
+    return res.created({
+      message: "Staff created",
+      id: staff.id,
     });
   } catch (err) {
     next(err);
@@ -66,17 +66,9 @@ const update = async (req, res, next) => {
         },
       },
     );
-    if (!n)
-      return res
-        .status(404)
-        .json({ success: false, message: "Staff not found" });
+    if (!n) return res.notFound("Staff not found");
 
-    res.json({
-      success: true,
-      data: {
-        message: "Staff updated",
-      },
-    });
+    return res.message("Staff updated");
   } catch (err) {
     next(err);
   }
@@ -95,17 +87,9 @@ const updatePin = async (req, res, next) => {
         },
       },
     );
-    if (!n)
-      return res
-        .status(404)
-        .json({ success: false, message: "Staff not found" });
+    if (!n) return res.notFound("Staff not found");
 
-    res.json({
-      success: true,
-      data: {
-        message: "PIN updated",
-      },
-    });
+    return res.message("PIN updated");
   } catch (err) {
     next(err);
   }
@@ -114,10 +98,7 @@ const updatePin = async (req, res, next) => {
 const deactivate = async (req, res, next) => {
   try {
     if (req.params.id === req.staff.id)
-      return res.status(400).json({
-        success: false,
-        message: "Cannot deactivate your own account",
-      });
+      return res.error("Cannot deactivate your own account");
 
     const [n] = await Staff.update(
       {
@@ -129,17 +110,9 @@ const deactivate = async (req, res, next) => {
         },
       },
     );
-    if (!n)
-      return res
-        .status(404)
-        .json({ success: false, message: "Staff not found" });
+    if (!n) return res.notFound("Staff not found");
 
-    res.json({
-      success: true,
-      data: {
-        message: "Staff deactivated",
-      },
-    });
+    return res.message("Staff deactivated");
   } catch (err) {
     next(err);
   }
@@ -157,17 +130,9 @@ const activate = async (req, res, next) => {
         },
       },
     );
-    if (!n)
-      return res
-        .status(404)
-        .json({ success: false, message: "Staff not found" });
+    if (!n) return res.notFound("Staff not found");
 
-    res.json({
-      success: true,
-      data: {
-        message: "Staff activated",
-      },
-    });
+    return res.message("Staff activated");
   } catch (err) {
     next(err);
   }
@@ -193,7 +158,7 @@ const getStaffTransactions = async (req, res, next) => {
       ],
       order: [["created_at", "DESC"]],
     });
-    res.json({ success: true, data: rows });
+    return res.success(rows);
   } catch (err) {
     next(err);
   }

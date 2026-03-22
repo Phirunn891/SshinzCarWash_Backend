@@ -1,7 +1,6 @@
 const { DataTypes } = require("sequelize");
 const sequelize = require("../Config/db");
-
-const Payment = sequelize.define(
+const payment = sequelize.define(
   "payments",
   {
     id: {
@@ -21,4 +20,4 @@ const Payment = sequelize.define(
   { tableName: "payments", timestamps: false },
 );
 
-module.exports = Payment;
+module.exports = payment;

@@ -1,5 +1,4 @@
 const { Op, AsyncQueueError } = require("sequelize");
-const Sevice = require("../Models/service.model");
 const Customer = require("../Models/customer.model");
 const CustomerMemberhsip = require("../Models/customerMembership.model");
 const Membership = require("../Models/membership.model");
@@ -18,30 +17,32 @@ const Service = require("../Models/service.model");
 const ServiceConsumption = require("../Models/serviceConsumption.model");
 // getService
 // GET /api/pos/services
-const getService = async (req, resizeBy, next) => {
+const getService = async (req, res, next) => {
   try {
     // getService
-    const service = await Sevice.findAll({
+    const service = await Service.findAll({
       where: {
         is_active: true,
       },
       order: [["name", "ASC"]],
     });
     if (!service) {
-      return resizeBy.status(404).json({
+      return res.status(404).json({
         success: false,
         message: "No Services Found!!",
         data: service,
       });
     }
-    resizeBy.status(200).json({
+    res.status(200).json({
       success: true,
-      message: "Service Have",
+      message: "Services Found",
+      data: service,
     });
   } catch (error) {
     next(error);
   }
 };
+
 // getCustomer
 // GET /api/pos/customers/search?q=
 const getCustomer = async (req, resizeBy, next) => {
@@ -218,10 +219,10 @@ const getTransactionDetail = async (req, res, next) => {
 const checkout = async (req, res, next) => {
   const t = await sequelize.transaction();
   try {
-    const { customer_id, itmes, payment_method, points_used = 0 } = req.body;
+    const { customer_id, items, payment_method, points_used = 0 } = req.body;
     const staff_id = req.staff.id;
     // 1 Validaiton & Fetch Services
-    const servieIds = itmes.map((i) => i.service_id);
+    const servieIds = items.map((i) => i.service_id);
     const services = await Service.findAll({
       where: {
         id: {
@@ -242,7 +243,7 @@ const checkout = async (req, res, next) => {
     const svcMap = Object.fromEntries(services.map((s) => [s.id, s]));
     // 2 Subtotal
     let subtotal = 0;
-    for (const item of itmes)
+    for (const item of items)
       subtotal += parseFloat(svcMap[item.service_id].price) * item.qty;
     subtotal = parseFloat(subtotal.toFixed(2));
 
@@ -317,7 +318,7 @@ const checkout = async (req, res, next) => {
     );
     // 6. Transaction items
     await TransactionItem.bulkCreate(
-      itmes.map((item) => ({
+      items.map((item) => ({
         transaction_id: txn.id,
         service_id: item.service_id,
         qty: item.qty,
@@ -340,7 +341,7 @@ const checkout = async (req, res, next) => {
       },
     );
     // 8. Auto-deduct inventory per service_consumption
-    for (const item of itmes) {
+    for (const item of items) {
       const rules = await ServiceConsumption.findAll({
         where: {
           service_id: item.service_id,
@@ -419,13 +420,13 @@ const voidTransaction = async (req, res, next) => {
   try {
     const txn = await Transaction.findOne({
       where: {
-        if: req.params.id,
+        id: req.params.id,
         status: "completed",
       },
       include: [
         {
           model: TransactionItem,
-          as: "itmes",
+          as: "items",
         },
       ],
       transaction: t,
